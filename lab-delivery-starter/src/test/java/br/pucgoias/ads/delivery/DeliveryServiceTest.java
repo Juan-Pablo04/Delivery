@@ -144,20 +144,35 @@ class DeliveryServiceTest {
     }
 
     @Test
+    @DisplayName("9. Transicoes de status respeitam o ciclo de vida (R6)")
+    void caso9_transicoes() {
+        Pedido pedido = servico.criarPedido(cerrado.getId(), ana,
+                List.of(new ItemSolicitado("PAMONHA", 1)));
+        pedido = servico.avancarStatus(pedido.getId());
+        assertThat(pedido.getStatus()).isEqualTo(StatusPedido.EM_PREPARO);
+        pedido = servico.avancarStatus(pedido.getId());
+        assertThat(pedido.getStatus()).isEqualTo(StatusPedido.SAIU_PARA_ENTREGA);
+        pedido = servico.avancarStatus(pedido.getId());
+        assertThat(pedido.getStatus()).isEqualTo(StatusPedido.ENTREGUE);
+        String pedidoId = pedido.getId();
+        assertThatThrownBy(() -> servico.avancarStatus(pedidoId))
+                .isInstanceOf(TransicaoInvalidaException.class);
+        assertThatThrownBy(() -> servico.cancelarPedido(pedidoId))
+                .isInstanceOf(TransicaoInvalidaException.class);
+    }
+
+    @Test
     @DisplayName("10. Faturamento agrega apenas pedidos ENTREGUE, em ordem decrescente (R7)")
     void caso10_faturamento() {
         Restaurante nonna = servico.cadastrarRestaurante(new Restaurante("Nonna Pasta", "Italiana",
                 new Endereco("Rua 9, 20", "Setor Oeste", "Goiania")));
         servico.adicionarItemCardapio(nonna.getId(),
                 new ItemCardapio("LASANHA", "Lasanha bolonhesa", new BigDecimal("48.00"), true));
-
         pedidoEntregue(cerrado.getId(), "PAMONHA", 2); 
         pedidoEntregue(cerrado.getId(), "EMPADAO", 1);   
         pedidoEntregue(nonna.getId(), "LASANHA", 2);     
         servico.criarPedido(nonna.getId(), ana, List.of(new ItemSolicitado("LASANHA", 5))); // nao entregue
-
         List<FaturamentoRestaurante> relatorio = servico.faturamentoPorRestaurante();
-
         assertThat(relatorio).hasSize(2);
         assertThat(relatorio.get(0).restauranteId()).isEqualTo(nonna.getId());
         assertThat(relatorio.get(0).faturamento()).isEqualByComparingTo("96.00");
