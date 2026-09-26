@@ -94,6 +94,7 @@ class DeliveryServiceTest {
         assertThat(restauranteRepository.findByEnderecoBairro("Setor Oeste"))
                 .extracting(Restaurante::getNome).containsExactly("Nonna Pasta");
     }
+    
     @Test
     @DisplayName("5. Item e incluido no cardapio; codigo repetido e rejeitado (R2)")
     void caso5_adicionarItem() {
@@ -104,8 +105,20 @@ class DeliveryServiceTest {
     assertThatThrownBy(() -> servico.adicionarItemCardapio(cerrado.getId(),
             new ItemCardapio("PAMONHA", "Pamonha repetida", new BigDecimal("10.00"), true)))
             .isInstanceOf(ItemDuplicadoException.class);
-}
+    }
 
+    @Test
+    @DisplayName("6. Pedido copia nome e preco e calcula o total (R3)")
+    void caso6_criarPedido() {
+    Pedido pedido = servico.criarPedido(cerrado.getId(), ana,
+            List.of(new ItemSolicitado("PAMONHA", 2), new ItemSolicitado("EMPADAO", 1)));
+
+    assertThat(pedido.getId()).isNotBlank();
+    assertThat(pedido.getStatus()).isEqualTo(StatusPedido.RECEBIDO);
+    assertThat(pedido.getItens()).hasSize(2);
+    assertThat(pedido.getItens().get(0).nome()).isEqualTo("Pamonha de sal");
+    assertThat(pedido.getTotal()).isEqualByComparingTo("49.50");
+    }
 
     @Test
     @DisplayName("10. Faturamento agrega apenas pedidos ENTREGUE, em ordem decrescente (R7)")
