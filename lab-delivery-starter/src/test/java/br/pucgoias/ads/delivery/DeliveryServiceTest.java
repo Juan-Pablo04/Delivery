@@ -94,7 +94,7 @@ class DeliveryServiceTest {
         assertThat(restauranteRepository.findByEnderecoBairro("Setor Oeste"))
                 .extracting(Restaurante::getNome).containsExactly("Nonna Pasta");
     }
-    
+
     @Test
     @DisplayName("5. Item e incluido no cardapio; codigo repetido e rejeitado (R2)")
     void caso5_adicionarItem() {
@@ -112,12 +112,24 @@ class DeliveryServiceTest {
     void caso6_criarPedido() {
     Pedido pedido = servico.criarPedido(cerrado.getId(), ana,
             List.of(new ItemSolicitado("PAMONHA", 2), new ItemSolicitado("EMPADAO", 1)));
-
     assertThat(pedido.getId()).isNotBlank();
     assertThat(pedido.getStatus()).isEqualTo(StatusPedido.RECEBIDO);
     assertThat(pedido.getItens()).hasSize(2);
     assertThat(pedido.getItens().get(0).nome()).isEqualTo("Pamonha de sal");
     assertThat(pedido.getTotal()).isEqualByComparingTo("49.50");
+    }
+
+    @Test
+    @DisplayName("7. Pedido vazio, item indisponivel ou inexistente sao rejeitados (R3)")
+    void caso7_pedidoInvalido() {
+    assertThatThrownBy(() -> servico.criarPedido(cerrado.getId(), ana, List.of()))
+            .isInstanceOf(PedidoInvalidoException.class);
+    assertThatThrownBy(() -> servico.criarPedido(cerrado.getId(), ana,
+            List.of(new ItemSolicitado("PEQUI", 1))))
+            .isInstanceOf(ItemIndisponivelException.class);
+    assertThatThrownBy(() -> servico.criarPedido(cerrado.getId(), ana,
+            List.of(new ItemSolicitado("INEXISTENTE", 1))))
+            .isInstanceOf(ItemIndisponivelException.class);
     }
 
     @Test
