@@ -98,11 +98,11 @@ class DeliveryServiceTest {
     @Test
     @DisplayName("5. Item e incluido no cardapio; codigo repetido e rejeitado (R2)")
     void caso5_adicionarItem() {
-    servico.adicionarItemCardapio(cerrado.getId(),
+        servico.adicionarItemCardapio(cerrado.getId(),
             new ItemCardapio("ARROZ", "Arroz com pequi", new BigDecimal("15.00"), true));
-    Restaurante lido = servico.buscarRestaurante(cerrado.getId());
-    assertThat(lido.getCardapio()).hasSize(4);
-    assertThatThrownBy(() -> servico.adicionarItemCardapio(cerrado.getId(),
+        Restaurante lido = servico.buscarRestaurante(cerrado.getId());
+        assertThat(lido.getCardapio()).hasSize(4);
+        assertThatThrownBy(() -> servico.adicionarItemCardapio(cerrado.getId(),
             new ItemCardapio("PAMONHA", "Pamonha repetida", new BigDecimal("10.00"), true)))
             .isInstanceOf(ItemDuplicadoException.class);
     }
@@ -110,26 +110,37 @@ class DeliveryServiceTest {
     @Test
     @DisplayName("6. Pedido copia nome e preco e calcula o total (R3)")
     void caso6_criarPedido() {
-    Pedido pedido = servico.criarPedido(cerrado.getId(), ana,
+        Pedido pedido = servico.criarPedido(cerrado.getId(), ana,
             List.of(new ItemSolicitado("PAMONHA", 2), new ItemSolicitado("EMPADAO", 1)));
-    assertThat(pedido.getId()).isNotBlank();
-    assertThat(pedido.getStatus()).isEqualTo(StatusPedido.RECEBIDO);
-    assertThat(pedido.getItens()).hasSize(2);
-    assertThat(pedido.getItens().get(0).nome()).isEqualTo("Pamonha de sal");
-    assertThat(pedido.getTotal()).isEqualByComparingTo("49.50");
+        assertThat(pedido.getId()).isNotBlank();
+        assertThat(pedido.getStatus()).isEqualTo(StatusPedido.RECEBIDO);
+        assertThat(pedido.getItens()).hasSize(2);
+        assertThat(pedido.getItens().get(0).nome()).isEqualTo("Pamonha de sal");
+        assertThat(pedido.getTotal()).isEqualByComparingTo("49.50");
     }
 
     @Test
     @DisplayName("7. Pedido vazio, item indisponivel ou inexistente sao rejeitados (R3)")
     void caso7_pedidoInvalido() {
-    assertThatThrownBy(() -> servico.criarPedido(cerrado.getId(), ana, List.of()))
+        assertThatThrownBy(() -> servico.criarPedido(cerrado.getId(), ana, List.of()))
             .isInstanceOf(PedidoInvalidoException.class);
-    assertThatThrownBy(() -> servico.criarPedido(cerrado.getId(), ana,
+        assertThatThrownBy(() -> servico.criarPedido(cerrado.getId(), ana,
             List.of(new ItemSolicitado("PEQUI", 1))))
             .isInstanceOf(ItemIndisponivelException.class);
-    assertThatThrownBy(() -> servico.criarPedido(cerrado.getId(), ana,
+        assertThatThrownBy(() -> servico.criarPedido(cerrado.getId(), ana,
             List.of(new ItemSolicitado("INEXISTENTE", 1))))
             .isInstanceOf(ItemIndisponivelException.class);
+    }
+
+    @Test
+    @DisplayName("8. Alteracao de preco no cardapio nao afeta pedido existente (R4)")
+    void caso8_snapshotDePreco() {
+        Pedido pedido = servico.criarPedido(cerrado.getId(), ana,
+                List.of(new ItemSolicitado("PAMONHA", 1)));
+        servico.alterarPreco(cerrado.getId(), "PAMONHA", new BigDecimal("20.00"));
+        Pedido lido = servico.buscarPedido(pedido.getId());
+        assertThat(lido.getItens().get(0).precoUnitario()).isEqualByComparingTo("12.00");
+        assertThat(lido.getTotal()).isEqualByComparingTo("12.00");
     }
 
     @Test
